@@ -4,6 +4,7 @@ import db
 import json
 import httpx
 import logging
+import anthropic
 from config import Config
 from comms import CommsFactory
 
@@ -73,6 +74,12 @@ Respond in structured JSON format with the following keys:
 - next_stage: One of 'Intro', 'Discovery', 'Qualification', 'Finished'.
 """
 
+    if Config.LLM_PROVIDER == "anthropic":
+        return await call_anthropic(lead, conversation, history, system_prompt)
+    else:
+        return await call_openai(lead, conversation, history, system_prompt)
+
+async def call_openai(lead, conversation, history, system_prompt):
     messages = [{"role": "system", "content": system_prompt}]
     for msg in history:
         role = "assistant" if msg['role'] == 'ai' else "user"
@@ -97,7 +104,35 @@ Respond in structured JSON format with the following keys:
             content = response.json()['choices'][0]['message']['content']
             return json.loads(content)
     except Exception as e:
-        logger.error(f"LLM call failed: {e}")
+        logger.error(f"OpenAI call failed: {e}")
+        return mock_llm_logic(lead, conversation, history)
+
+async def call_anthropic(lead, conversation, history, system_prompt):
+    messages = []
+    for msg in history:
+        role = "assistant" if msg['role'] == 'ai' else "user"
+        messages.append({"role": role, "content": msg['content']})
+
+    # Anthropic requires at least one message
+    if not messages:
+        messages.append({"role": "user", "content": "Hello"})
+
+    try:
+        if Config.ANTHROPIC_API_KEY == "your-anthropic-key-here":
+            return mock_llm_logic(lead, conversation, history)
+            
+        client = anthropic.AsyncAnthropic(api_key=Config.ANTHROPIC_API_KEY)
+        # Claude 3+ supports system as a top-level parameter
+        response = await client.messages.create(
+            model=Config.ANTHROPIC_MODEL,
+            max_tokens=1024,
+            system=system_prompt + "\nIMPORTANT: You MUST respond with a valid JSON object. Do not include any other text.",
+            messages=messages
+        )
+        content = response.content[0].text
+        return json.loads(content)
+    except Exception as e:
+        logger.error(f"Anthropic call failed: {e}")
         return mock_llm_logic(lead, conversation, history)
 
 def mock_llm_logic(lead, conversation, history):
