@@ -1,0 +1,19 @@
+Starting integration test...
+
+Step 1: Creating new lead via CRM webhook...
+SUCCESS: Lead created with ID 2daa756a-7668-475c-bc34-e9ba88af71f4
+Agent Outreach: Hi Test User! I'm LeadTalk. I saw you're interested in a car from HubSpot. What are you looking for?
+
+Step 2: Sending discovery reply from lead...
+Agent Response: Tell me more about your budget and when you'd like to get the car.
+Stage: Qualification
+
+Step 3: Sending qualification reply (intent to buy)...
+Agent Response: That's great! You sound ready. I'll have a specialist contact you.
+Is Qualified: True
+Handoff Triggered: True
+
+INTEGRATION TEST PASSED!
+
+Step 4: Verifying lead status in DB via API...
+SUCCESS: Lead status is 'Qualified'
